@@ -1,46 +1,73 @@
+/* ===== GLOBAL ===== */
+
 body {
   background: #111;
   color: #eee;
   font-family: Arial, sans-serif;
-  padding: 20px;
+  padding: 16px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1 {
+  margin-bottom: 8px;
 }
 
 #stats, #options {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
+
+/* ===== LAYOUT ===== */
 
 #game {
   display: flex;
-  gap: 30px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 16px;
 }
 
-#controls {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* Desktop layout */
+@media (min-width: 768px) {
+  #game {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  #controls {
+    min-width: 180px;
+  }
 }
+
+/* ===== BOARD ===== */
 
 #board {
   display: grid;
-  grid-template-columns: repeat(8, 60px);
-  grid-template-rows: repeat(8, 60px);
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+
+  width: min(90vw, 420px);
+  aspect-ratio: 1 / 1;
+
   border: 3px solid #888;
 }
 
+/* ===== SQUARES ===== */
+
 .square {
-  width: 60px;
-  height: 60px;
+  width: 100%;
+  height: 100%;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+
+  font-size: clamp(14px, 4vw, 20px);
   cursor: pointer;
   position: relative;
+  user-select: none;
 }
 
 .light { background: #666; }
-.dark { background: #444; }
+.dark  { background: #444; }
 
 .selected {
   outline: 3px solid yellow;
@@ -50,18 +77,18 @@ body {
   color: #ff5555;
 }
 
-/* Influence */
+/* ===== INFLUENCE ===== */
+
 .influence-player {
   box-shadow: inset 0 0 0 3px rgba(0,150,255,0.6);
 }
+
 .influence-enemy {
   box-shadow: inset 0 0 0 3px rgba(255,60,60,0.6);
 }
-.influence-contested {
-  box-shadow: inset 0 0 0 3px rgba(180,100,255,0.8);
-}
 
-/* Siege */
+/* ===== SIEGE ===== */
+
 .square.siege::after {
   content: "⛓";
   position: absolute;
@@ -71,14 +98,32 @@ body {
   color: orange;
 }
 
+/* ===== CONTROLS ===== */
+
+#controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+button, select, input {
+  font-size: 16px;
+  padding: 10px;
+  min-height: 44px;
+}
+
+/* ===== LOG ===== */
+
 #log {
-  margin-top: 20px;
+  margin-top: 12px;
   background: #222;
   padding: 10px;
-  max-height: 260px;
+  max-height: 30vh;
   overflow-y: auto;
   font-size: 14px;
 }
+
+/* ===== GAME OVER ===== */
 
 #gameOver {
   position: fixed;
