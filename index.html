@@ -1,48 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <title>LINEWAR</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <title>LINEWAR</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-    <h1>LINEWAR</h1>
+<h1>LINEWAR</h1>
 
-    <div id="stats">
-        <div>Turn: <span id="turn">1</span></div>
-        <div>Supply: <span id="supply">20</span></div>
-        <div>Morale: <span id="morale">10</span></div>
-        <div>Intel: <span id="intel">0</span></div>
-        <div>Fatigue: <span id="fatigue">0</span></div>
-    </div>
+<div id="stats">
+  <div>Turn: <span id="turn">1</span></div>
+  <div>Supply: <span id="supply">20</span></div>
+  <div>Morale: <span id="morale">10</span></div>
+  <div>Intel: <span id="intel">0</span></div>
+  <div>Fatigue: <span id="fatigue">0</span></div>
+</div>
 
-    <div id="game">
-        <div id="board"></div>
+<div id="game">
+  <div id="board"></div>
 
-        <div id="controls">
-            <select id="piece">
-                <option value="queen">Queen</option>
-                <option value="rook">Rook</option>
-                <option value="knight">Knight</option>
-                <option value="bishop">Bishop</option>
-                <option value="pawn">Pawn</option>
-            </select>
+  <div id="controls">
+    <select id="piece">
+      <option value="queen">Queen</option>
+      <option value="rook">Rook</option>
+      <option value="knight">Knight</option>
+      <option value="bishop">Bishop</option>
+      <option value="pawn">Pawn</option>
+    </select>
 
-            <input id="supplyUsed" type="number" min="0" max="5" placeholder="Supply" />
-            <button onclick="commitLine()">Attack</button>
-            <button onclick="enterRepositionMode()">Reposition</button>
-            <button onclick="endTurn()">End Turn</button>
-            <button onclick="saveGame()">Save</button>
-            <button onclick="loadGame()">Load</button>
-        </div>
-    </div>
+    <input id="supplyUsed" type="number" min="0" max="5" placeholder="Supply" />
 
-    <div id="log"></div>
+    <button onclick="commitLine()">Attack</button>
+    <button onclick="enterRepositionMode()">Reposition</button>
+    <button onclick="endTurn()">End Turn</button>
+    <button onclick="saveGame()">Save</button>
+    <button onclick="loadGame()">Load</button>
+  </div>
+</div>
 
-    <script src="game.js"></script>
+<div id="log"></div>
+
+<script src="game.js"></script>
 </body>
-
 </html>
