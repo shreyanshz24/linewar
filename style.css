@@ -1,104 +1,96 @@
 body {
-    background: #111;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    padding: 20px;
+  background: #111;
+  color: #eee;
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+#stats {
+  margin-bottom: 10px;
 }
 
 #game {
-    display: flex;
-    gap: 30px;
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+#controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 #board {
-    display: grid;
-    grid-template-columns: repeat(8, 60px);
-    grid-template-rows: repeat(8, 60px);
-    border: 3px solid #888;
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  border: 3px solid #888;
 }
 
 .square {
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
 }
 
-.light {
-    background: #666;
-}
-
-.dark {
-    background: #444;
-}
+.light { background: #666; }
+.dark { background: #444; }
 
 .selected {
-    outline: 3px solid yellow;
+  outline: 3px solid yellow;
 }
 
 .enemy {
-    color: red;
+  color: red;
 }
 
 /* Influence */
 .influence-player {
-    box-shadow: inset 0 0 0 4px rgba(0, 150, 255, 0.6);
+  box-shadow: inset 0 0 0 4px rgba(0,150,255,0.6);
 }
-
 .influence-enemy {
-    box-shadow: inset 0 0 0 4px rgba(255, 60, 60, 0.6);
+  box-shadow: inset 0 0 0 4px rgba(255,60,60,0.6);
 }
-
 .influence-contested {
-    box-shadow: inset 0 0 0 4px rgba(180, 100, 255, 0.8);
+  box-shadow: inset 0 0 0 4px rgba(180,100,255,0.8);
 }
 
 /* Fog */
 .square.fog {
-    background: #111 !important;
-    color: transparent;
+  background: #111 !important;
+  color: transparent;
 }
-
 .square.fog::after {
-    content: "?";
-    color: #555;
+  content: "?";
+  color: #555;
 }
 
 /* Siege */
-.square.siege-1::after {
-    content: "⛓";
-    color: orange;
-}
-
-.square.siege-2::after {
-    content: "⏳";
-    color: yellow;
-}
-
-.square.siege-3::after {
-    content: "🏴";
-    color: red;
-}
+.square.siege-1::after { content: "⛓"; color: orange; }
+.square.siege-2::after { content: "⏳"; color: yellow; }
+.square.siege-3::after { content: "🏴"; color: red; }
 
 #log {
-    margin-top: 20px;
-    background: #222;
-    padding: 10px;
-    max-height: 250px;
-    overflow-y: auto;
+  margin-top: 20px;
+  background: #222;
+  padding: 10px;
+  max-height: 250px;
+  overflow-y: auto;
 }
 
 #gameOver {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 64px;
-    z-index: 999;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  z-index: 999;
 }
