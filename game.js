@@ -1,10 +1,7 @@
-/* =====================
-   CORE STATE
-===================== */
+/* ========= CORE STATE ========= */
 
 let supply = 20;
 let morale = 10;
-let intel = 0;
 let fatigue = 0;
 let turn = 1;
 let gameOver = false;
@@ -15,20 +12,16 @@ let selectedSquare = null;
 
 const boardElement = document.getElementById("board");
 const board = [];
-const sieges = {};
-const fakeEnemyUnits = [];
 
-/* =====================
-   PIECES
-===================== */
+/* ========= PIECES (SINGLE SOURCE OF TRUTH) ========= */
 
 const playerPieces = [
-  { type: "king", row: 7, col: 4 },
-  { type: "queen", row: 6, col: 3 },
   { type: "rook", row: 7, col: 0 },
   { type: "bishop", row: 7, col: 2 },
-  { type: "knight", row: 7, col: 5 },
-  { type: "pawn", row: 6, col: 4 }
+  { type: "queen", row: 6, col: 3 },
+  { type: "pawn", row: 6, col: 4 },
+  { type: "king", row: 7, col: 4 },
+  { type: "knight", row: 7, col: 5 }
 ];
 
 const enemyPieces = [
@@ -40,17 +33,13 @@ const enemyPieces = [
   { type: "pawn", row: 1, col: 3 }
 ];
 
-const powerMap = {
-  queen: 4,
-  rook: 3,
-  knight: 3,
-  bishop: 2,
-  pawn: 1
-};
+const powerMap = { queen:4, rook:3, knight:3, bishop:2, pawn:1 };
 
-/* =====================
-   BOARD CREATION
-===================== */
+/* ========= SIEGES ========= */
+/* key "r,c" → { turns: number } */
+const sieges = {};
+
+/* ========= BOARD RENDER ========= */
 
 function createBoard() {
   board.length = 0;
@@ -58,256 +47,222 @@ function createBoard() {
 
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const square = { row: r, col: c, enemy: false };
-
-      const enemy = enemyPieces.find(p => p.row === r && p.col === c);
-      if (enemy) square.enemy = true;
-
       const div = document.createElement("div");
       div.className = `square ${(r + c) % 2 === 0 ? "light" : "dark"}`;
-      div.innerText = "";
-      div.classList.remove("enemy");
 
-      /* DRAW ORDER */
+      const player = playerPieces.find(p => p.row === r && p.col === c);
+      const enemy = enemyPieces.find(p => p.row === r && p.col === c);
 
-      // Player piece (always visible)
-      const playerHere = playerPieces.find(p => p.row === r && p.col === c);
-      if (playerHere) {
-        div.innerText = playerHere.type[0].toUpperCase();
-      }
-
-      // Enemy piece (only if visible)
-      if (enemy && isVisibleToPlayer(square)) {
+      if (player) {
+        div.innerText = player.type[0].toUpperCase();
+      } else if (enemy) {
         div.innerText = enemy.type[0].toUpperCase();
         div.classList.add("enemy");
       }
 
-      // Fake enemy
-      const fake = fakeEnemyUnits.find(f => f.row === r && f.col === c);
-      if (fake && isVisibleToPlayer(square)) {
-        div.innerText = "⚔";
-      }
+      const key = `${r},${c}`;
+      if (sieges[key]) div.classList.add("siege");
 
-      div.onclick = () => handleSquareClick(square, div);
+      const square = { row: r, col: c, element: div };
+      div.onclick = () => selectSquare(square, div);
 
-      square.element = div;
       board.push(square);
       boardElement.appendChild(div);
     }
   }
 
   renderInfluence();
-  renderFogOfWar();
-  renderSieges();
 }
 
-/* =====================
-   CLICK HANDLING
-===================== */
+/* ========= INPUT ========= */
 
-function handleSquareClick(square, div) {
+function selectSquare(square, div) {
+  document.querySelectorAll(".square").forEach(s => s.classList.remove("selected"));
+  div.classList.add("selected");
+  selectedSquare = square;
+
   if (repositionMode) {
     const piece = playerPieces.find(p => p.row === square.row && p.col === square.col);
     if (piece) {
       selectedPiece = piece;
-      log(`Selected ${piece.type.toUpperCase()} to move.`);
-      return;
+      log("Piece selected for reposition.");
+    } else if (selectedPiece) {
+      attemptMove(square);
     }
-    if (selectedPiece && supply >= 1) {
-      const dr = Math.abs(square.row - selectedPiece.row);
-      const dc = Math.abs(square.col - selectedPiece.col);
-      if (dr <= 1 && dc <= 1) {
-        selectedPiece.row = square.row;
-        selectedPiece.col = square.col;
-        supply -= 1;
-        repositionMode = false;
-        selectedPiece = null;
-        log("Piece repositioned.");
-        createBoard();
-        updateUI();
-      }
-    }
-    return;
   }
-
-  document.querySelectorAll(".square").forEach(s => s.classList.remove("selected"));
-  div.classList.add("selected");
-  selectedSquare = square;
 }
 
-/* =====================
-   INFLUENCE
-===================== */
+function attemptMove(target) {
+  const dr = Math.abs(target.row - selectedPiece.row);
+  const dc = Math.abs(target.col - selectedPiece.col);
+  if (dr <= 1 && dc <= 1 && supply >= 2) {
+    selectedPiece.row = target.row;
+    selectedPiece.col = target.col;
+    supply -= 2;
+    repositionMode = false;
+    selectedPiece = null;
+    log("Piece repositioned (−2 Supply).");
+    update();
+  }
+}
+
+/* ========= INFLUENCE ========= */
 
 function getInfluenceSquares(p) {
   const res = [];
-  const push = (r, c) => {
-    if (r >= 0 && r < 8 && c >= 0 && c < 8) res.push(`${r},${c}`);
-  };
+  const push = (r,c) => r>=0&&r<8&&c>=0&&c<8&&res.push(`${r},${c}`);
 
-  if (p.type === "king" || p.type === "pawn")
-    for (let dr = -1; dr <= 1; dr++)
-      for (let dc = -1; dc <= 1; dc++)
-        if (dr || dc) push(p.row + dr, p.col + dc);
+  if (p.type==="king"||p.type==="pawn")
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++) if(dr||dc) push(p.row+dr,p.col+dc);
 
-  if (p.type === "queen")
-    for (let dr = -2; dr <= 2; dr++)
-      for (let dc = -2; dc <= 2; dc++)
-        if (dr || dc) push(p.row + dr, p.col + dc);
+  if (p.type==="queen")
+    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++) if(dr||dc) push(p.row+dr,p.col+dc);
 
-  if (p.type === "rook")
-    for (let i = 0; i < 8; i++) {
-      push(p.row, i);
-      push(i, p.col);
-    }
+  if (p.type==="rook")
+    for(let i=0;i<8;i++){ push(p.row,i); push(i,p.col); }
 
-  if (p.type === "bishop")
-    for (let i = -7; i <= 7; i++) {
-      push(p.row + i, p.col + i);
-      push(p.row + i, p.col - i);
-    }
+  if (p.type==="bishop")
+    for(let i=-7;i<=7;i++){ push(p.row+i,p.col+i); push(p.row+i,p.col-i); }
 
-  if (p.type === "knight")
+  if (p.type==="knight")
     [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]
-      .forEach(([dr,dc]) => push(p.row + dr, p.col + dc));
+      .forEach(([dr,dc]) => push(p.row+dr,p.col+dc));
 
   return res;
 }
 
-function calculateInfluence() {
-  const map = {};
-  const apply = (p, side) => {
-    getInfluenceSquares(p).forEach(k => {
-      if (!map[k]) map[k] = { player: 0, enemy: 0 };
-      map[k][side]++;
-    });
-  };
-  playerPieces.forEach(p => apply(p, "player"));
-  enemyPieces.forEach(p => apply(p, "enemy"));
-  return map;
-}
-
 function renderInfluence() {
-  const inf = calculateInfluence();
+  const map = {};
+  playerPieces.forEach(p => getInfluenceSquares(p).forEach(k => map[k] = (map[k]||0)+1));
+  enemyPieces.forEach(p => getInfluenceSquares(p).forEach(k => map[k] = (map[k]||0)-1));
+
   board.forEach(s => {
     s.element.classList.remove("influence-player","influence-enemy","influence-contested");
-    if (!isVisibleToPlayer(s)) return;
-    const d = inf[`${s.row},${s.col}`];
-    if (!d) return;
-    if (d.player && d.enemy) s.element.classList.add("influence-contested");
-    else if (d.player) s.element.classList.add("influence-player");
-    else if (d.enemy) s.element.classList.add("influence-enemy");
+    const v = map[`${s.row},${s.col}`];
+    if (v > 0) s.element.classList.add("influence-player");
+    else if (v < 0) s.element.classList.add("influence-enemy");
   });
 }
 
-/* =====================
-   FOG (FIXED)
-===================== */
-
-function isVisibleToPlayer(square) {
-  const inf = calculateInfluence()[`${square.row},${square.col}`];
-  return inf && inf.player > 0;
-}
-
-function renderFogOfWar() {
-  board.forEach(square => {
-    const playerPieceHere = playerPieces.find(
-      p => p.row === square.row && p.col === square.col
-    );
-    if (playerPieceHere) {
-      square.element.classList.remove("fog");
-      return;
-    }
-    square.element.classList.toggle("fog", !isVisibleToPlayer(square));
-  });
-}
-
-/* =====================
-   COMBAT & SIEGE
-===================== */
+/* ========= COMBAT & SIEGE ========= */
 
 function commitLine() {
   if (!selectedSquare || gameOver) return;
 
-  if (!isVisibleToPlayer(selectedSquare)) {
-    morale--;
-    log("Attack into fog failed.");
-    updateUI();
-    return;
-  }
-
   const piece = document.getElementById("piece").value;
-  let used = parseInt(document.getElementById("supplyUsed").value || 0);
+  const used = parseInt(document.getElementById("supplyUsed").value || 0);
   if (used > supply) return;
 
-  let power = powerMap[piece] + used - fatigue;
   supply -= used;
+  fatigue++;
+  const power = powerMap[piece] + used - fatigue;
 
-  if (piece === "bishop") {
-    intel = Math.min(5, intel + 1);
-    fakeEnemyUnits.push({ row: selectedSquare.row, col: selectedSquare.col });
-    intel = Math.max(0, intel - 1);
-    log("Fake enemy deployed.");
+  const idx = enemyPieces.findIndex(
+    p => p.row === selectedSquare.row && p.col === selectedSquare.col
+  );
+
+  if (idx !== -1 && power >= 4) {
+    const key = `${selectedSquare.row},${selectedSquare.col}`;
+    sieges[key] = sieges[key] || { turns: 0 };
+    log("Siege initiated.");
   } else {
-    if (selectedSquare.enemy && power >= 4) {
-      const key = `${selectedSquare.row},${selectedSquare.col}`;
-      sieges[key] = { stage: 1 };
-      log("Enemy position under siege.");
-    } else {
-      morale--;
-      log("Attack failed.");
-    }
+    morale--;
+    log("Attack failed (−1 Morale).");
   }
 
-  fatigue++;
-  updateUI();
-  createBoard();
+  update();
 }
 
 function advanceSieges() {
   Object.keys(sieges).forEach(k => {
-    sieges[k].stage++;
-    if (sieges[k].stage >= 3) {
+    sieges[k].turns++;
+    if (sieges[k].turns >= 2) {
       const [r,c] = k.split(",").map(Number);
-      const sq = board.find(s => s.row === r && s.col === c);
-      if (sq) sq.enemy = false;
+      const idx = enemyPieces.findIndex(p => p.row===r && p.col===c);
+      if (idx !== -1) {
+        enemyPieces.splice(idx,1);
+        morale++;
+        log("Siege successful (+1 Morale).");
+      }
       delete sieges[k];
-      morale++;
-      log("Siege successful.");
-    } else {
-      morale--;
-      supply--;
     }
   });
 }
 
-function renderSieges() {
-  board.forEach(s => {
-    s.element.classList.remove("siege-1","siege-2","siege-3");
-    const k = `${s.row},${s.col}`;
-    if (sieges[k]) s.element.classList.add(`siege-${sieges[k].stage}`);
+/* ========= ENEMY AI ========= */
+
+function enemyTurn() {
+  const difficulty = parseInt(document.getElementById("difficulty").value);
+  const influence = {};
+
+  playerPieces.forEach(p => getInfluenceSquares(p).forEach(k => influence[k]=(influence[k]||0)+1));
+  enemyPieces.forEach(p => getInfluenceSquares(p).forEach(k => influence[k]=(influence[k]||0)-1));
+
+  // Pressure King if exposed
+  const king = playerPieces.find(p=>p.type==="king");
+  const kKey = `${king.row},${king.col}`;
+  if (influence[kKey] < 0 && difficulty > 0) {
+    morale -= difficulty;
+    log("Enemy pressures your King.");
+  }
+
+  // Try to break sieges
+  Object.keys(sieges).forEach(k => {
+    if (Math.random() < 0.3 + difficulty*0.2) {
+      delete sieges[k];
+      log("Enemy disrupts a siege.");
+    }
   });
+
+  // Expand influence on Hard
+  if (difficulty === 2) {
+    const mover = enemyPieces.find(p => p.type !== "king");
+    if (mover && mover.row < 7) {
+      mover.row++;
+      log("Enemy repositions to expand control.");
+    }
+  }
 }
 
-/* =====================
-   TURN / SAVE / UI
-===================== */
+/* ========= TURN / WIN ========= */
 
 function endTurn() {
-  if (gameOver) return;
   advanceSieges();
+  enemyTurn();
+
+  supply = Math.min(20, supply + 1);
   if (fatigue > 0) fatigue--;
-  supply = Math.min(20, supply + 2);
+
   turn++;
-  updateUI();
-  createBoard();
-  checkGameState();
+  update();
+  checkWin();
 }
+
+function checkWin() {
+  const enemyKing = enemyPieces.find(p => p.type==="king");
+  const playerKing = playerPieces.find(p => p.type==="king");
+
+  if (!enemyKing || enemyPieces.length === 0 || Object.keys(sieges).length >= 3) {
+    endGame("YOU WIN — ENEMY COLLAPSED");
+  }
+  if (!playerKing || morale <= 0 || supply <= 0) {
+    endGame("YOU LOSE — YOUR FORCES COLLAPSED");
+  }
+}
+
+function endGame(msg) {
+  gameOver = true;
+  const o = document.createElement("div");
+  o.id = "gameOver";
+  o.innerHTML = `<h1>${msg}</h1>`;
+  document.body.appendChild(o);
+}
+
+/* ========= SAVE / UI ========= */
 
 function saveGame() {
   localStorage.setItem("linewar", JSON.stringify({
-    supply, morale, intel, fatigue, turn,
-    playerPieces, enemyPieces, fakeEnemyUnits, sieges
+    supply, morale, fatigue, turn, playerPieces, enemyPieces, sieges
   }));
   log("Game saved.");
 }
@@ -315,48 +270,35 @@ function saveGame() {
 function loadGame() {
   const d = JSON.parse(localStorage.getItem("linewar"));
   if (!d) return;
-  ({ supply, morale, intel, fatigue, turn } = d);
+
+  ({ supply, morale, fatigue, turn } = d);
   playerPieces.length = 0;
   enemyPieces.length = 0;
-  fakeEnemyUnits.length = 0;
   Object.assign(sieges, d.sieges || {});
   d.playerPieces.forEach(p => playerPieces.push(p));
   d.enemyPieces.forEach(p => enemyPieces.push(p));
-  d.fakeEnemyUnits.forEach(f => fakeEnemyUnits.push(f));
-  createBoard();
-  updateUI();
+  update();
 }
 
-function updateUI() {
+function update() {
+  document.getElementById("turn").innerText = turn;
   document.getElementById("supply").innerText = supply;
   document.getElementById("morale").innerText = morale;
-  document.getElementById("intel").innerText = intel;
   document.getElementById("fatigue").innerText = fatigue;
-  document.getElementById("turn").innerText = turn;
+  createBoard();
 }
 
 function log(msg) {
-  document.getElementById("log").innerHTML += `<div>${msg}</div>`;
+  document.getElementById("log").innerHTML += `<div>• ${msg}</div>`;
 }
 
 function enterRepositionMode() {
   repositionMode = true;
+  selectedPiece = null;
   log("Reposition mode active.");
 }
 
-function checkGameState() {
-  if (supply <= 0 || morale <= 0) {
-    gameOver = true;
-    const o = document.createElement("div");
-    o.id = "gameOver";
-    o.innerHTML = "<h1>GAME OVER</h1>";
-    document.body.appendChild(o);
-  }
-}
-
-/* =====================
-   START
-===================== */
+/* ========= START ========= */
 
 createBoard();
-updateUI();
+update();
